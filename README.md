@@ -9,4 +9,4 @@
   </p>
 </p>
 
-![Local Image](./e1.gif)
+![Local Image](peek.gif)
