@@ -1,63 +1,121 @@
 const socket = new WebSocket("ws://0.0.0.0:8181/");
 let myImage = new Image();
 let uniqueParam = new Date().getTime();
-myImage.src = "../assets/starting.png";
+myImage.src = "../assets/bg1.png";
 let fillStyleAlpha = 0.05;
 let changes = 0;
+textImage = new Image();
+textImage.src = `../assets/text/starting.svg`;
+
+function changeBackgroundImage() {
+  const imageNames = ["bg1.png", "bg2.png", "bg3.png", "bg4.png", "bg5.png"];
+  const randomIndex = Math.floor(Math.random() * imageNames.length);
+  const randomImageName = imageNames[randomIndex];
+  const imagePath = `../assets/${randomImageName}`;
+
+  myImage.src = `${imagePath}`;
+}
+changeBackgroundImage();
+
 
 function changeFillAlpha() {
-  const amt = 0.01;
+  const amt = 0.02;
 
-  if (changes < 30) {
+  if (changes < 40) {
     fillStyleAlpha += amt;
-  } else if (changes > 30) {
+  } else if (changes >= 40) {
     fillStyleAlpha -= amt;
-  } 
+  }
 
   changes += 1;
 
-  if (changes === 61) {
+  if (changes === 80) {
     changes = 0;
     fillStyleAlpha = 0.05;
   }
-
 }
 
 const intervalId = setInterval(changeFillAlpha, 250);
 
+let textReady = false;
+textImage.addEventListener("load", function () {
+  textReady = true;
+});
+
 myImage.addEventListener("load", function () {
+  // Call the function initially to set the initial background image
+
+  // Set an interval to call the function every 5 seconds
+  // setInterval(changeBackgroundImage, 5000);
   let particlesArray = [];
   let mappedImage = [];
   const numberOfParticles = 7000;
+  let startTime = new Date();
+  let endTime;
 
   const canvas = document.getElementById("canvas1");
   const ctx = canvas.getContext("2d");
+
   canvas.width = 900;
   canvas.height = 900;
-
   ctx.drawImage(myImage, 0, 0, canvas.width, canvas.height);
-  let pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const randomQuadrant = Math.floor(Math.random() * 4) + 1;
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  let offsetX, offsetY;
 
-  for (let y = 0; y < canvas.height; y++) {
-    let row = [];
-    for (let x = 0; x < canvas.width; x++) {
-      const red = pixels.data[y * 4 * pixels.width + x * 4];
-      const green = pixels.data[y * 4 * pixels.width + (x * 4 + 1)];
-      const blue = pixels.data[y * 4 * pixels.width + (x * 4 + 2)];
-      const brightness = calculateReletiveBrightness(red, green, blue);
-      const cell = [
-        (cellBrightness = brightness),
-        (cellColor = "rgb(" + red + "," + green + "," + blue + ")"),
-      ];
-      row.push(cell);
-    }
-    mappedImage.push(row);
+  switch (randomQuadrant) {
+    case 1:
+      offsetX = 100;
+      offsetY = 100;
+      break;
+    case 2:
+      offsetX = canvas.width - 600;
+      offsetY = canvas.height - 400;
+      break;
+    case 3:
+      offsetX = canvas.width - 700;
+      offsetY = canvas.height - 600;
+
+      break;
+    case 4:
+      offsetX = canvas.width - 800;
+      offsetY = canvas.height - 800;
+    default:
+      offsetX = canvas.width - 550;
+      offsetY = canvas.height - 800;
   }
 
+  // Draw the image at the calculated coordinates
+
+  ctx.drawImage(textImage, offsetX, offsetY);
+
+  let pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   function calculateReletiveBrightness(r, g, b) {
     return Math.sqrt(r * r * 0.229 + g * g * 0.587 + b * b * 0.114) / 100;
   }
+  function mapImageDataToMatrix(britFunc) {
+    for (let y = 0; y < canvas.height; y++) {
+      let row = [];
+
+      for (let x = 0; x < canvas.width; x++) {
+        const red = pixels.data[y * 4 * pixels.width + x * 4];
+        const green = pixels.data[y * 4 * pixels.width + (x * 4 + 1)];
+        const blue = pixels.data[y * 4 * pixels.width + (x * 4 + 2)];
+        const brightness = britFunc(red, green, blue);
+        const cell = [
+          (cellBrightness = brightness),
+          (cellColor = "rgb(" + red + "," + green + "," + blue + ")"),
+        ];
+        row.push(cell);
+      }
+
+      mappedImage.push(row);
+    }
+  }
+
+  mapImageDataToMatrix(calculateReletiveBrightness);
 
   class Particle {
     constructor() {
@@ -120,6 +178,7 @@ myImage.addEventListener("load", function () {
   }
 
   function init() {
+    particlesArray = [];
     for (let i = 0; i < numberOfParticles; i++) {
       particlesArray.push(new Particle());
     }
@@ -131,13 +190,21 @@ myImage.addEventListener("load", function () {
     ctx.fillStyle = `rgba(0, 0, 0, ${fillStyleAlpha})`;
     ctx.globalAlpha = 0.1;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
     for (let i = 0; i < particlesArray.length; i++) {
       particlesArray[i].update();
       ctx.globalAlpha = particlesArray[i].speed * 0.5;
       particlesArray[i].draw();
     }
     requestAnimationFrame(animate);
+    endTime = new Date();
+    let timeDelta = endTime - startTime;
+
+    if (timeDelta > 30000) {
+      location.reload(true);
+    }
   }
+
   animate();
 });
 
